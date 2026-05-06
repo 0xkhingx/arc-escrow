@@ -1,19 +1,23 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
 
-import {Script} from "forge-std/Script.sol";
-import {Escrow} from "../src/Escrow.sol";
+import "forge-std/Script.sol";
+import "../src/Escrow.sol";
 
-contract EscrowScript is Script {
-    Escrow public escrow;
+contract DeployEscrow is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
-    function setUp() public {}
+        vm.startBroadcast(deployerPrivateKey);
 
-    function run() public {
-        vm.startBroadcast();
-
-        escrow = new Escrow(address(2), keccak256("complete the task"));
+        // Deploy with a dummy agent address and condition hash for now
+        Escrow escrow = new Escrow(
+            address(0xdead),
+            keccak256("test deployment")
+        );
 
         vm.stopBroadcast();
+
+        console.log("Escrow deployed at:", address(escrow));
     }
 }
