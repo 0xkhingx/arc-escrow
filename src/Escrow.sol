@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+interface IERC20 {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
 contract Escrow {
-    // --- State Variables ---
+    address public constant USDC = 0x3600000000000000000000000000000000000000;
+
     address public payer;
     address public agent;
     uint256 public amount;
@@ -17,20 +28,13 @@ contract Escrow {
     }
     State public currentState;
 
-    // --- Events ---
     event Deposited(address indexed payer, uint256 amount);
     event Completed(address indexed agent, uint256 amount);
     event Disputed(address indexed payer);
     event Refunded(address indexed payer, uint256 amount);
 
-    // --- Modifiers ---
     modifier onlyPayer() {
         require(msg.sender == payer, "Only payer can call this");
-        _;
-    }
-
-    modifier onlyAgent() {
-        require(msg.sender == agent, "Only agent can call this");
         _;
     }
 
@@ -39,7 +43,6 @@ contract Escrow {
         _;
     }
 
-    // --- Constructor ---
     constructor(address _agent, bytes32 _conditionHash) {
         payer = msg.sender;
         agent = _agent;
@@ -47,16 +50,14 @@ contract Escrow {
         currentState = State.AWAITING_PAYMENT;
     }
 
-    // --- Functions ---
-    function deposit()
-        external
-        payable
-        onlyPayer
-        inState(State.AWAITING_PAYMENT)
-    {
-        amount = msg.value;
+    function deposit(
+        uint256 _amount
+    ) external onlyPayer inState(State.AWAITING_PAYMENT) {
+        require(_amount > 0, "Amount must be > 0");
+        IERC20(USDC).transferFrom(msg.sender, address(this), _amount);
+        amount = _amount;
         currentState = State.AWAITING_COMPLETION;
-        emit Deposited(msg.sender, msg.value);
+        emit Deposited(msg.sender, _amount);
     }
 
     function confirmCompletion()
@@ -65,7 +66,7 @@ contract Escrow {
         inState(State.AWAITING_COMPLETION)
     {
         currentState = State.COMPLETE;
-        payable(agent).transfer(amount);
+        IERC20(USDC).transfer(agent, amount);
         emit Completed(agent, amount);
     }
 
@@ -76,7 +77,7 @@ contract Escrow {
 
     function refund() external onlyPayer inState(State.DISPUTED) {
         currentState = State.REFUNDED;
-        payable(payer).transfer(amount);
+        IERC20(USDC).transfer(payer, amount);
         emit Refunded(payer, amount);
     }
 }
