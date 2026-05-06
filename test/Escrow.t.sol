@@ -54,7 +54,7 @@ contract EscrowTest is Test {
         // Fund payer and deploy escrow
         usdc.mint(payer, depositAmount);
         vm.prank(payer);
-        escrow = new Escrow(agent, conditionHash);
+        escrow = new Escrow(payer, agent, conditionHash);
     }
 
     function test_InitialState() public view {

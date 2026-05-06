@@ -43,8 +43,8 @@ contract Escrow {
         _;
     }
 
-    constructor(address _agent, bytes32 _conditionHash) {
-        payer = msg.sender;
+    constructor(address _payer, address _agent, bytes32 _conditionHash) {
+        payer = _payer;
         agent = _agent;
         conditionHash = _conditionHash;
         currentState = State.AWAITING_PAYMENT;
@@ -54,7 +54,10 @@ contract Escrow {
         uint256 _amount
     ) external onlyPayer inState(State.AWAITING_PAYMENT) {
         require(_amount > 0, "Amount must be > 0");
-        IERC20(USDC).transferFrom(msg.sender, address(this), _amount);
+        require(
+            IERC20(USDC).transferFrom(msg.sender, address(this), _amount),
+            "Transfer failed"
+        );
         amount = _amount;
         currentState = State.AWAITING_COMPLETION;
         emit Deposited(msg.sender, _amount);
@@ -66,7 +69,7 @@ contract Escrow {
         inState(State.AWAITING_COMPLETION)
     {
         currentState = State.COMPLETE;
-        IERC20(USDC).transfer(agent, amount);
+        require(IERC20(USDC).transfer(agent, amount), "Transfer failed");
         emit Completed(agent, amount);
     }
 
@@ -77,7 +80,36 @@ contract Escrow {
 
     function refund() external onlyPayer inState(State.DISPUTED) {
         currentState = State.REFUNDED;
-        IERC20(USDC).transfer(payer, amount);
+        require(IERC20(USDC).transfer(payer, amount), "Transfer failed");
         emit Refunded(payer, amount);
+    }
+}
+
+contract EscrowFactory {
+    address[] public escrows;
+
+    event EscrowCreated(
+        address indexed escrowAddress,
+        address indexed payer,
+        address indexed agent,
+        bytes32 conditionHash
+    );
+
+    function createEscrow(
+        address _agent,
+        bytes32 _conditionHash
+    ) external returns (address) {
+        Escrow escrow = new Escrow(msg.sender, _agent, _conditionHash);
+        escrows.push(address(escrow));
+        emit EscrowCreated(address(escrow), msg.sender, _agent, _conditionHash);
+        return address(escrow);
+    }
+
+    function getEscrows() external view returns (address[] memory) {
+        return escrows;
+    }
+
+    function getEscrowCount() external view returns (uint256) {
+        return escrows.length;
     }
 }

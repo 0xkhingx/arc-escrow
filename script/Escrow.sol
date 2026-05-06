@@ -4,20 +4,16 @@ pragma solidity ^0.8.19;
 import "forge-std/Script.sol";
 import "../src/Escrow.sol";
 
-contract DeployEscrow is Script {
+contract DeployEscrowFactory is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // Deploy with a dummy agent address and condition hash for now
-        Escrow escrow = new Escrow(
-            address(0xdead),
-            keccak256("test deployment")
-        );
+        EscrowFactory factory = new EscrowFactory();
 
         vm.stopBroadcast();
 
-        console.log("Escrow deployed at:", address(escrow));
+        console.log("EscrowFactory deployed at:", address(factory));
     }
 }
