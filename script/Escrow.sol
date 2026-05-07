@@ -11,13 +11,17 @@ contract DeployAll is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // Deploy factory first
+        // Deploy factory
         EscrowFactory factory = new EscrowFactory();
         console.log("EscrowFactory deployed at:", address(factory));
 
-        // Deploy registry, passing factory address so it can update reputation
+        // Deploy registry with factory address
         AgentRegistry registry = new AgentRegistry(address(factory));
         console.log("AgentRegistry deployed at:", address(registry));
+
+        // Wire them together — factory now knows the registry
+        factory.setRegistry(address(registry));
+        console.log("Registry wired to factory");
 
         vm.stopBroadcast();
     }

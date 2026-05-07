@@ -116,6 +116,6 @@ contract AgentRegistryTest is Test {
 
         vm.prank(owner);
         registry.updateFactory(address(0x9999));
-        assertEq(registry.escrowFactory(), address(0x9999));
+        assertEq(registry.authorized(address(0x9999)), true);
     }
 }

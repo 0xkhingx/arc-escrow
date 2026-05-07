@@ -17,8 +17,8 @@ contract AgentRegistry {
     mapping(address => Agent) public agents;
     address[] public agentList;
 
-    // Only the escrow factory can update reputation
-    address public escrowFactory;
+    // Authorized callers (escrow contracts) can update reputation
+    mapping(address => bool) public authorized;
     address public owner;
 
     event AgentRegistered(
@@ -39,13 +39,21 @@ contract AgentRegistry {
     }
 
     modifier onlyFactory() {
-        require(msg.sender == escrowFactory, "Not authorized");
+        require(authorized[msg.sender], "Not authorized");
         _;
     }
 
     constructor(address _escrowFactory) {
         owner = msg.sender;
-        escrowFactory = _escrowFactory;
+        authorized[_escrowFactory] = true;
+    }
+
+    function authorize(address _addr) external onlyFactory {
+        authorized[_addr] = true;
+    }
+
+    function revoke(address _addr) external onlyOwner {
+        authorized[_addr] = false;
     }
 
     function register(
@@ -120,7 +128,7 @@ contract AgentRegistry {
     }
 
     function updateFactory(address _newFactory) external onlyOwner {
-        escrowFactory = _newFactory;
+        authorized[_newFactory] = true;
     }
 
     function getAgent(address _wallet) external view returns (Agent memory) {
